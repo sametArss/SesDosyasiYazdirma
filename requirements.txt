@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+whisper
+torch
+python-multipart
+pydantic
