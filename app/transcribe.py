@@ -1,36 +1,42 @@
 import whisper
+import torch
 from typing import Optional
 from pydub import AudioSegment
 import tempfile
 
-# 🎯 Daha doğru sonuç için "medium" modelini kullanalım
-MODEL_NAME = "medium"  # tiny / base / small / medium / large
+# ⚙️ Model seçimi — 'small' hızlı, 'medium' daha doğru
+MODEL_NAME = "medium"  # 'medium' istersen doğruluk artar ama yavaşlar
+
+print(f"🎯 Whisper modeli yükleniyor: {MODEL_NAME}...")
 model = whisper.load_model(MODEL_NAME)
 
-def clean_audio(input_path):
-    """Ses dosyasını normalize eder (tek kanal, 16kHz)"""
-    sound = AudioSegment.from_file(input_path)
-    sound = sound.set_channels(1)
-    sound = sound.set_frame_rate(16000)
+# 🧠 GPU kullanımı (RTX 4050 desteği)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+model = model.to(DEVICE)
+print(f"✅ Model {DEVICE.upper()} üzerinde çalışıyor.")
 
+def clean_audio(input_path: str) -> str:
+    """Ses dosyasını normalize eder (tek kanal, 16kHz WAV)."""
+    sound = AudioSegment.from_file(input_path)
+    sound = sound.set_channels(1).set_frame_rate(16000)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         sound.export(tmp.name, format="wav")
         return tmp.name
 
-
 def transcribe_file(path: str, language: Optional[str] = "tr") -> str:
-    """Türkçe konuşmaları doğru şekilde yazıya çevirir"""
-    # Ses dosyasını temizleyelim
-    cleaned_path = clean_audio(path)
+    """Türkçe konuşmaları yüksek hızda ve doğrulukla yazıya çevirir."""
+    # Girdi WAV değilse dönüştür
+    if not path.lower().endswith(".wav"):
+        path = clean_audio(path)
 
-    # Whisper ayarları
-    options = {
-        "language": "tr",  # Türkçe'yi zorla
-        "fp16": False       # CPU uyumu
-    }
+    # 🚀 GPU ve Türkçe optimizasyonları
+    result = model.transcribe(
+        path,
+        language="tr",
+        fp16=(DEVICE == "cuda"),  # GPU'daysa fp16 aktif
+        temperature=0.0,           # Daha az rastgelelik
+        condition_on_previous_text=False,  # Kısa segmentlerde hız artışı
+        verbose=False
+    )
 
-    # Modeli çalıştır
-    result = model.transcribe(cleaned_path, **options)
-
-    # Çıktıyı döndür
     return result.get("text", "").strip()
