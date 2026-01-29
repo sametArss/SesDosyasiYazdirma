@@ -1,6 +1,27 @@
-fastapi
-uvicorn[standard]
-whisper
-torch
-python-multipart
-pydantic
+# fastapi
+# uvicorn[standard]
+# whisper
+# torch
+# python-multipart
+# pydantic
+
+
+# Core
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Whisper
+openai-whisper==20231117
+torch==2.1.2
+torchaudio==2.1.2
+
+# Audio processing
+pydub==0.25.1
+ffmpeg-python==0.2.0
+
+# Async file handling
+aiofiles==23.2.1
+
+# Optional: Monitoring
+# prometheus-fastapi-instrumentator==6.1.0
